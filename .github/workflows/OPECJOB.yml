@@ -22,6 +22,6 @@ jobs:
 
       - name: Execute Colab Notebook
         run: |
-          jupyter nbconvert --to script <your_notebook_name>.ipynb
+          jupyter nbconvert --to script <OPECDATAUPDATE>.ipynb
           python <your_notebook_name>.py
 ```
