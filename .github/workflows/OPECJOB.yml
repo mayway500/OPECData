@@ -1,27 +1,45 @@
+name: Update OPEC pricechart Basketlist
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: '0 6 * * *' # daily at 06:00 UTC (optional)
+
 jobs:
-  run-colab-notebook:
+  update-basketlist:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.x'
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
 
-      - name: Install dependencies
-        run: |
-          pip install pandas requests beautifulsoup4 furl html5lib html-table-parser-python3 numpy jupyter nbconvert
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install openpyxl
 
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-          project_id: <dotted-howl-479610-j6> # <<< IMPORTANT: REPLACE WITH YOUR GCP PROJECT ID
+    - name: Update Basketlist from oilpricechart
+      env:
+        XLSX_PATH: 'files/Opecpricechart.xlsx'
+      run: |
+        mkdir -p .github/scripts
+        python .github/scripts/update_basketlist.py "$XLSX_PATH"
 
-      - name: Execute Colab Notebook
-        run: |
-          jupyter nbconvert --to script <OPECDATAUPDATE>.ipynb
-          python <your_notebook_name>.py
-```
+    - name: Commit and push changes
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add files/Opecpricechart.xlsx
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "Automated: update 'Basketlist' sheet from 'oilpricechart' in Opecpricechart.xlsx"
+          git push
+        fi
