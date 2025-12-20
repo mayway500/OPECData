@@ -1,12 +1,15 @@
-name: Update OPEC pricechart Basketlist
+name: Export OPEC sheets to CSVs and update Basketlist
 
 on:
   workflow_dispatch: {}
   schedule:
-    - cron: '0 6 * * *' # daily at 06:00 UTC (optional)
+    - cron: '0 6 * * *' # daily at 06:00 UTC
+
+permissions:
+  contents: write
 
 jobs:
-  update-basketlist:
+  update-and-export:
     runs-on: ubuntu-latest
 
     steps:
@@ -25,21 +28,22 @@ jobs:
         python -m pip install --upgrade pip
         pip install openpyxl
 
-    - name: Update Basketlist from oilpricechart
+    - name: Run update + export script
       env:
         XLSX_PATH: 'files/Opecpricechart.xlsx'
+        EXPORT_DIR: 'files'
       run: |
-        mkdir -p .github/scripts
-        python .github/scripts/update_basketlist.py "$XLSX_PATH"
+        python .github/scripts/update_and_export.py "$XLSX_PATH" "$EXPORT_DIR"
 
-    - name: Commit and push changes
+    - name: Commit and push changes (if any)
       run: |
         git config user.name "github-actions[bot]"
         git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-        git add files/Opecpricechart.xlsx
+        # Add CSV files and the Excel in case it was updated
+        git add files/oilpricechart.csv files/Basketlist.csv files/Opecpricechart.xlsx
         if git diff --staged --quiet; then
           echo "No changes to commit"
         else
-          git commit -m "Automated: update 'Basketlist' sheet from 'oilpricechart' in Opecpricechart.xlsx"
+          git commit -m "Automated: export sheets to CSV (oilpricechart, Basketlist) and update Basketlist"
           git push
         fi
